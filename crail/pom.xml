@@ -36,6 +36,16 @@ LICENSE file.
       <version>${crail.version}</version>
     </dependency>
     <dependency>
+      <groupId>com.ibm.crail</groupId>
+      <artifactId>crail-storage-rdma</artifactId>
+      <version>${crail.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.ibm.crail</groupId>
+      <artifactId>crail-rpc-darpc</artifactId>
+      <version>${crail.version}</version>
+    </dependency>
+    <dependency>
       <groupId>com.yahoo.ycsb</groupId>
       <artifactId>core</artifactId>
       <version>${project.version}</version>
