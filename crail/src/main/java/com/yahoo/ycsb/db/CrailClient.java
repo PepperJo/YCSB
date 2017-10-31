@@ -22,36 +22,65 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import com.ibm.crail.CrailFS;
+import com.ibm.crail.conf.CrailConfiguration;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
+import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 
 /**
  * Crail binding for <a href="http://www.crail.io/">Crail</a>.
  */
 public class CrailClient extends DB {
+  private CrailFS client;
+
   @Override
-  public Status delete(String arg0, String arg1) {
+  public void init() throws DBException {
+    super.init();
+    try {
+      CrailConfiguration crailConf = new CrailConfiguration();
+      this.client = CrailFS.newInstance(crailConf);
+    } catch(Exception e){
+      throw new DBException(e);  
+    }
+  }
+  
+  @Override
+  public void cleanup() throws DBException {
+    try {
+      client.close();
+    } catch(Exception e){
+      throw new DBException(e);
+    }
+  }
+
+  @Override
+  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
+    return null;
+  }
+  
+  @Override
+  public Status scan(String table, String startKey, int recordCount, Set<String> fields, 
+      Vector<HashMap<String, ByteIterator>> result) {
     return null;
   }
 
   @Override
-  public Status insert(String arg0, String arg1, Map<String, ByteIterator> arg2) {
+  public Status update(String table, String key, Map<String, ByteIterator> values) {
+    return null;
+  }  
+
+  @Override
+  public Status insert(String table, String key, Map<String, ByteIterator> values) {
     return null;
   }
 
   @Override
-  public Status read(String arg0, String arg1, Set<String> arg2, Map<String, ByteIterator> arg3) {
+  public Status delete(String table, String key) {
     return null;
   }
 
-  @Override
-  public Status scan(String arg0, String arg1, int arg2, Set<String> arg3, Vector<HashMap<String, ByteIterator>> arg4) {
-    return null;
-  }
 
-  @Override
-  public Status update(String arg0, String arg1, Map<String, ByteIterator> arg2) {
-    return null;
-  }
+
 }
