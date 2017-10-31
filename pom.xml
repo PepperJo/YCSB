@@ -98,6 +98,7 @@ LICENSE file.
     <tarantool.version>1.6.5</tarantool.version>
     <riak.version>2.0.5</riak.version>
     <aerospike.version>3.1.2</aerospike.version>
+    <crail.version>1.0</crail.version>
     <solr.version>5.5.3</solr.version>
     <solr6.version>6.4.1</solr6.version>
     <arangodb.version>2.7.3</arangodb.version>
@@ -125,6 +126,7 @@ LICENSE file.
     <module>cloudspanner</module>
     <module>couchbase</module>
     <module>couchbase2</module>
+    <module>crail</module>
     <module>dynamodb</module>
     <module>elasticsearch</module>
     <module>elasticsearch5</module>
