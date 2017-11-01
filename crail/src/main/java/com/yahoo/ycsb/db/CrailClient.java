@@ -19,11 +19,19 @@ package com.yahoo.ycsb.db;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Vector;
 
+import com.ibm.crail.CrailBufferedInputStream;
+import com.ibm.crail.CrailBufferedOutputStream;
 import com.ibm.crail.CrailFS;
+import com.ibm.crail.CrailFile;
+import com.ibm.crail.CrailLocationClass;
+import com.ibm.crail.CrailNodeType;
+import com.ibm.crail.CrailStorageClass;
 import com.ibm.crail.conf.CrailConfiguration;
+import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
@@ -57,7 +65,24 @@ public class CrailClient extends DB {
 
   @Override
   public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
-    return null;
+    try {
+      String path = table + "/" + key;
+      CrailFile file = client.lookup(path).get().asFile();
+      CrailBufferedInputStream stream = file.getBufferedInputStream(1024);
+      while(stream.available() > 0){
+        int fieldKeyLength = stream.readInt();
+        byte[] fieldKey = new byte[fieldKeyLength];
+        stream.read(fieldKey);
+        int fieldValueLength = stream.readInt();
+        byte[] fieldValue = new byte[fieldValueLength];
+        stream.read(fieldValue);
+        result.put(new String(fieldKey), new ByteArrayByteIterator(fieldValue));
+      }
+      stream.close();
+      return Status.OK;
+    } catch(Exception e){
+      return Status.ERROR;
+    }
   }
   
   @Override
@@ -68,17 +93,43 @@ public class CrailClient extends DB {
 
   @Override
   public Status update(String table, String key, Map<String, ByteIterator> values) {
-    return null;
+    return insert(table, key, values);
   }  
 
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
-    return null;
+    try {
+      String path = table + "/" + key;
+      CrailFile file = client.create(path, CrailNodeType.DATAFILE, CrailStorageClass.DEFAULT, 
+          CrailLocationClass.DEFAULT).get().asFile();
+      CrailBufferedOutputStream stream = file.getBufferedOutputStream(1024);
+      for (Entry<String, ByteIterator> entry : values.entrySet()){
+        byte[] fieldKey = entry.getKey().getBytes();
+        int fieldKeyLength = fieldKey.length;
+        byte[] fieldValue = entry.getValue().toArray();
+        int fieldValueLength = fieldValue.length;
+        stream.writeInt(fieldKeyLength);
+        stream.write(fieldKey);
+        stream.writeInt(fieldValueLength);
+        stream.write(fieldValue);
+      }
+      stream.close();
+      file.syncDir();
+    } catch(Exception e){
+      return Status.ERROR;
+    }
+    return Status.OK;
   }
 
   @Override
   public Status delete(String table, String key) {
-    return null;
+    try {
+      String path = table + "/" + key;
+      client.delete(path, false).get().syncDir();
+    } catch(Exception e){
+      return Status.ERROR;
+    }
+    return Status.OK;
   }
 
 
