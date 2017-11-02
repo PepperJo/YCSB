@@ -20,6 +20,7 @@ package com.yahoo.ycsb.db;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Set;
 import java.util.Vector;
 
@@ -28,8 +29,10 @@ import com.ibm.crail.CrailBufferedOutputStream;
 import com.ibm.crail.CrailFS;
 import com.ibm.crail.CrailFile;
 import com.ibm.crail.CrailLocationClass;
+import com.ibm.crail.CrailNode;
 import com.ibm.crail.CrailNodeType;
 import com.ibm.crail.CrailStorageClass;
+import com.ibm.crail.Upcoming;
 import com.ibm.crail.conf.CrailConfiguration;
 import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
@@ -42,16 +45,25 @@ import com.yahoo.ycsb.Status;
  */
 public class CrailClient extends DB {
   private CrailFS client;
-
+  private boolean ready;
+  private Random random;
+  
   @Override
   public void init() throws DBException {
     super.init();
     try {
       CrailConfiguration crailConf = new CrailConfiguration();
       this.client = CrailFS.newInstance(crailConf);
+      this.random = new Random();      
     } catch(Exception e){
       throw new DBException(e);  
     }
+    try {
+      client.create("usertable", CrailNodeType.DIRECTORY, CrailStorageClass.DEFAULT, 
+        CrailLocationClass.DEFAULT).get().syncDir();
+    } catch(Exception e){
+      ready = true;
+    }    
   }
   
   @Override
@@ -100,7 +112,8 @@ public class CrailClient extends DB {
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
     try {
       String path = table + "/" + key;
-      CrailFile file = client.create(path, CrailNodeType.DATAFILE, CrailStorageClass.DEFAULT, 
+      String tmpPath = path + "." + random.nextInt();
+      CrailFile file = client.create(tmpPath, CrailNodeType.DATAFILE, CrailStorageClass.DEFAULT, 
           CrailLocationClass.DEFAULT).get().asFile();
       CrailBufferedOutputStream stream = file.getBufferedOutputStream(1024);
       for (Entry<String, ByteIterator> entry : values.entrySet()){
@@ -113,9 +126,12 @@ public class CrailClient extends DB {
         stream.writeInt(fieldValueLength);
         stream.write(fieldValue);
       }
-      stream.close();
       file.syncDir();
+      stream.close();
+      client.rename(tmpPath, path).get().syncDir();
     } catch(Exception e){
+      System.out.println(e.getMessage());
+      e.printStackTrace();
       return Status.ERROR;
     }
     return Status.OK;
