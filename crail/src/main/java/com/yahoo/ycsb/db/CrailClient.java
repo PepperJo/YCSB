@@ -29,10 +29,8 @@ import com.ibm.crail.CrailBufferedOutputStream;
 import com.ibm.crail.CrailFS;
 import com.ibm.crail.CrailFile;
 import com.ibm.crail.CrailLocationClass;
-import com.ibm.crail.CrailNode;
 import com.ibm.crail.CrailNodeType;
 import com.ibm.crail.CrailStorageClass;
-import com.ibm.crail.Upcoming;
 import com.ibm.crail.conf.CrailConfiguration;
 import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
@@ -59,7 +57,7 @@ public class CrailClient extends DB {
       throw new DBException(e);  
     }
     try {
-      client.create("usertable", CrailNodeType.DIRECTORY, CrailStorageClass.DEFAULT, 
+      client.create("usertable", CrailNodeType.TABLE, CrailStorageClass.DEFAULT, 
         CrailLocationClass.DEFAULT).get().syncDir();
     } catch(Exception e){
       ready = true;
@@ -112,8 +110,7 @@ public class CrailClient extends DB {
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
     try {
       String path = table + "/" + key;
-      String tmpPath = path + "." + random.nextInt();
-      CrailFile file = client.create(tmpPath, CrailNodeType.DATAFILE, CrailStorageClass.DEFAULT, 
+      CrailFile file = client.create(path, CrailNodeType.KEYVALUE, CrailStorageClass.DEFAULT, 
           CrailLocationClass.DEFAULT).get().asFile();
       CrailBufferedOutputStream stream = file.getBufferedOutputStream(1024);
       for (Entry<String, ByteIterator> entry : values.entrySet()){
@@ -128,7 +125,6 @@ public class CrailClient extends DB {
       }
       file.syncDir();
       stream.close();
-      client.rename(tmpPath, path).get().syncDir();
     } catch(Exception e){
       System.out.println(e.getMessage());
       e.printStackTrace();
