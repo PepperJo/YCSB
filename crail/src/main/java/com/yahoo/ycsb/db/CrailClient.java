@@ -28,6 +28,7 @@ import com.ibm.crail.CrailBufferedInputStream;
 import com.ibm.crail.CrailBufferedOutputStream;
 import com.ibm.crail.CrailFS;
 import com.ibm.crail.CrailFile;
+import com.ibm.crail.CrailKeyValue;
 import com.ibm.crail.CrailLocationClass;
 import com.ibm.crail.CrailNodeType;
 import com.ibm.crail.CrailStorageClass;
@@ -77,7 +78,7 @@ public class CrailClient extends DB {
   public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     try {
       String path = table + "/" + key;
-      CrailFile file = client.lookup(path).get().asFile();
+      CrailKeyValue file = client.lookup(path).get().asKeyValue();
       CrailBufferedInputStream stream = file.getBufferedInputStream(1024);
       while(stream.available() > 0){
         int fieldKeyLength = stream.readInt();
@@ -110,8 +111,8 @@ public class CrailClient extends DB {
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
     try {
       String path = table + "/" + key;
-      CrailFile file = client.create(path, CrailNodeType.KEYVALUE, CrailStorageClass.DEFAULT, 
-          CrailLocationClass.DEFAULT).get().asFile();
+      CrailKeyValue file = client.create(path, CrailNodeType.KEYVALUE, CrailStorageClass.DEFAULT, 
+          CrailLocationClass.DEFAULT).get().asKeyValue();
       CrailBufferedOutputStream stream = file.getBufferedOutputStream(1024);
       for (Entry<String, ByteIterator> entry : values.entrySet()){
         byte[] fieldKey = entry.getKey().getBytes();
