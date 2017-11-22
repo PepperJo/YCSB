@@ -27,7 +27,6 @@ import java.util.Vector;
 import com.ibm.crail.CrailBufferedInputStream;
 import com.ibm.crail.CrailBufferedOutputStream;
 import com.ibm.crail.CrailFS;
-import com.ibm.crail.CrailFile;
 import com.ibm.crail.CrailKeyValue;
 import com.ibm.crail.CrailLocationClass;
 import com.ibm.crail.CrailNodeType;
@@ -46,6 +45,8 @@ public class CrailClient extends DB {
   private CrailFS client;
   private boolean ready;
   private Random random;
+  private long startTime;
+  private long endTime;
   
   @Override
   public void init() throws DBException {
@@ -63,11 +64,16 @@ public class CrailClient extends DB {
     } catch(Exception e){
       ready = true;
     }    
+    this.startTime = System.nanoTime();
+    System.out.println("YCSB/Crail init, v1");
   }
   
   @Override
   public void cleanup() throws DBException {
     try {
+      this.endTime = System.nanoTime();
+      long runTime = (endTime - startTime) / 1000000;
+      System.out.println("runTime " + runTime);
       client.close();
     } catch(Exception e){
       throw new DBException(e);
@@ -83,16 +89,23 @@ public class CrailClient extends DB {
       while(stream.available() > 0){
         int fieldKeyLength = stream.readInt();
         byte[] fieldKey = new byte[fieldKeyLength];
-        stream.read(fieldKey);
+        int res = stream.read(fieldKey);
+        if (res != fieldKey.length){
+          return Status.ERROR;
+        }
         int fieldValueLength = stream.readInt();
         byte[] fieldValue = new byte[fieldValueLength];
-        stream.read(fieldValue);
+        res = stream.read(fieldValue);
+        if (res != fieldValue.length){
+          return Status.ERROR;
+        }
         result.put(new String(fieldKey), new ByteArrayByteIterator(fieldValue));
       }
       stream.close();
       return Status.OK;
     } catch(Exception e){
-      return Status.ERROR;
+      e.printStackTrace();
+      return new Status("read error", "reading exception");
     }
   }
   
