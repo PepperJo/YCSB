@@ -47,27 +47,27 @@ public class CrailClient extends DB {
   private Random random;
   private long startTime;
   private long endTime;
-  
+
   @Override
   public void init() throws DBException {
     super.init();
     try {
       CrailConfiguration crailConf = new CrailConfiguration();
       this.client = CrailFS.newInstance(crailConf);
-      this.random = new Random();      
+      this.random = new Random();
     } catch(Exception e){
-      throw new DBException(e);  
+      throw new DBException(e);
     }
     try {
-      client.create("usertable", CrailNodeType.TABLE, CrailStorageClass.DEFAULT, 
+      client.create("usertable", CrailNodeType.TABLE, CrailStorageClass.DEFAULT,
         CrailLocationClass.DEFAULT).get().syncDir();
     } catch(Exception e){
       ready = true;
-    }    
+    }
     this.startTime = System.nanoTime();
     System.out.println("YCSB/Crail init, v1");
   }
-  
+
   @Override
   public void cleanup() throws DBException {
     try {
@@ -86,21 +86,26 @@ public class CrailClient extends DB {
       String path = table + "/" + key;
       CrailKeyValue file = client.lookup(path).get().asKeyValue();
       CrailBufferedInputStream stream = file.getBufferedInputStream(1024);
-      while(stream.available() > 0){
-        int fieldKeyLength = stream.readInt();
-        byte[] fieldKey = new byte[fieldKeyLength];
-        int res = stream.read(fieldKey);
-        if (res != fieldKey.length){
-          return Status.ERROR;
-        }
-        int fieldValueLength = stream.readInt();
-        byte[] fieldValue = new byte[fieldValueLength];
-        res = stream.read(fieldValue);
-        if (res != fieldValue.length){
-          return Status.ERROR;
-        }
-        result.put(new String(fieldKey), new ByteArrayByteIterator(fieldValue));
+      while(stream.available() < Integer.BYTES);
+      int fieldKeyLength = stream.readInt();
+      while(stream.available() < fieldKeyLength);
+      byte[] fieldKey = new byte[fieldKeyLength];
+      int res = stream.read(fieldKey);
+      if (res != fieldKey.length){
+        stream.close();
+        return Status.ERROR;
       }
+      while(stream.available() < Integer.BYTES);
+      int fieldValueLength = stream.readInt();
+      while(stream.available() < fieldValueLength);
+      byte[] fieldValue = new byte[fieldValueLength];
+      res = stream.read(fieldValue);
+      if (res != fieldValue.length){
+        stream.close();
+        return Status.ERROR;
+      }
+      result.put(new String(fieldKey), new ByteArrayByteIterator(fieldValue));
+
       stream.close();
       return Status.OK;
     } catch(Exception e){
@@ -108,9 +113,9 @@ public class CrailClient extends DB {
       return new Status("read error", "reading exception");
     }
   }
-  
+
   @Override
-  public Status scan(String table, String startKey, int recordCount, Set<String> fields, 
+  public Status scan(String table, String startKey, int recordCount, Set<String> fields,
       Vector<HashMap<String, ByteIterator>> result) {
     return null;
   }
@@ -118,13 +123,13 @@ public class CrailClient extends DB {
   @Override
   public Status update(String table, String key, Map<String, ByteIterator> values) {
     return insert(table, key, values);
-  }  
+  }
 
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
     try {
       String path = table + "/" + key;
-      CrailKeyValue file = client.create(path, CrailNodeType.KEYVALUE, CrailStorageClass.DEFAULT, 
+      CrailKeyValue file = client.create(path, CrailNodeType.KEYVALUE, CrailStorageClass.DEFAULT,
           CrailLocationClass.DEFAULT).get().asKeyValue();
       CrailBufferedOutputStream stream = file.getBufferedOutputStream(1024);
       for (Entry<String, ByteIterator> entry : values.entrySet()){
